@@ -1,0 +1,187 @@
+---
+title: "R Notebook"
+output:
+ html_document:
+ df_print: paged
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(reticulate)
+```
+
+```{python}
+import pandas as pd
+import numpy as np 
+import seaborn as sns
+import matplotlib.pyplot as plt
+```
+
+```{r}
+df = read.csv("~/Downloads/DEV _ March Madness.csv")
+```
+
+```{r}
+head(df)
+```
+```{r}
+colnames(df)
+```
+```{python}
+print(sorted(r.df.Season.unique()))
+```
+
+```{python}
+r.df['Full.Team.Name'].nunique()
+```
+
+```{python}
+fig = plt.figure()
+ax = fig.add_subplot()
+ax.hist(r.df.AdjTempo,edgecolor='black',color='blue')
+plt.show()
+```
+
+```{r}
+ggplot(df %>% filter(AvgHeight > 0), aes(x=AvgHeight,y=eFGPct)) + geom_point(aes(color=Tempo)) + geom_smooth()
+```
+
+```{r}
+ggplot(df %>% filter(Tempo > 0) %>% group_by(Season) %>% summarise(avgTempo = mean(Tempo,na.rm=T))) + geom_line(aes(x=Season,y=avgTempo)) + geom_smooth(aes(x=Season,y=avgTempo))
+```
+```{python}
+fig = plt.figure()
+ax = fig.add_subplot()
+ax.boxplot(r.df[r.df['Active.Coaching.Length.Index'] > 0]['Active.Coaching.Length.Index'])
+plt.show()
+```
+
+```{r}
+df %>% filter(Active.Coaching.Length.Index > 0) %>% arrange(desc(Active.Coaching.Length.Index)) %>% head(1) %>% select(Current.Coach,Active.Coaching.Length,Full.Team.Name)
+```
+```{r}
+df$Seed = sapply(df$Seed,function(r){
+  if (r == 'Not In a Post-Season Tournament') {
+    return(0)
+  } else {
+    return(r)
+  }
+})
+```
+
+```{r}
+df$Seed = as.integer(df$Seed)
+str(select(df,Seed))
+```
+
+```{r}
+df %>% group_by(Mapped.ESPN.Team.Name) %>% filter(Seed > 0) %>% summarise(avgSeed = mean(Seed,na.rm=T),seasons = n()) %>% filter(seasons >= mean(seasons,na.rm=T),avgSeed > 0) %>% arrange(avgSeed) %>% head(10)
+```
+
+```{r}
+df %>% group_by(Mapped.ESPN.Team.Name) %>% filter(Seed > 0) %>% summarise(avgSeed = mean(Seed,na.rm=T),seasons = n()) %>% filter(seasons >= mean(seasons,na.rm=T),avgSeed > 0) %>% arrange(desc(avgSeed)) %>% head(10)
+```
+```{r}
+df %>% filter(AvgHeight > 0) %>% group_by(Mapped.ESPN.Team.Name) %>% summarise(avgHeight = mean(AvgHeight,na.rm=T)) %>% arrange(desc(avgHeight)) %>% head(10)
+```
+```{r}
+df %>% filter(AvgHeight > 0) %>% group_by(Mapped.ESPN.Team.Name) %>% summarise(avgHeight = mean(AvgHeight,na.rm=T)) %>% arrange(avgHeight) %>% head(10)
+```
+
+```{r}
+library(plotly)
+ggplotly(ggplot(df %>% filter(AvgHeight > 0) %>% group_by(Season) %>% summarise(avgHeight = mean(AvgHeight,na.rm=T)),aes(x=Season,y=avgHeight)) + geom_line()) 
+```
+
+```{python}
+fig = plt.figure()
+ax = fig.add_subplot()
+ax.scatter(x=r.df[r.df.FG2Pct > 0].AvgHeight,y=r.df[r.df.FG2Pct > 0].FG2Pct,edgecolor='black')
+ax.set_xlabel('Average Height')
+ax.set_ylabel('2P FG%')
+plt.show()
+```
+```{python}
+corr = r.df.select_dtypes(include='number').corr()
+```
+
+```{python}
+corrdf = corr['Seed'].reset_index().sort_values(by='Seed',ascending=False)
+corrdf[corrdf.Seed > 0.05]
+```
+```{python}
+columns = corrdf[corrdf.Seed > 0.05]['index'].tolist()
+```
+
+```{r}
+py$columns
+```
+
+```{r}
+model = lm(Seed ~ AdjEM + Net.Rating + AdjOE + Adjusted.Offensive.Efficiency + 
+           Raw.Offensive.Efficiency + OE + eFGPct + FG2Pct + FG3Pct + ORPct +
+           FTRate + BlockPct + Experience + ARate + StlRate + DFP + 
+           Avg.Possession.Length..Defense. + FTPct + EffectiveHeight + 
+           OffFT + Def2PtFG, data = filter(df,Post.Season.Tournament == 'March Madness',Season != 2025))
+```
+
+```{r}
+summary(model)
+```
+
+```{r}
+plot(model)
+```
+
+```{r}
+head(filter(df, Season == 2025))  # Check the first few rows of the 2025 data
+summary(filter(df, Season == 2025))  # Check for any NA values or unexpected data types
+
+```
+```{r}
+df %>% filter(Season == 2025) %>%
+  select(Seed, AdjEM, Net.Rating, AdjOE, Adjusted.Offensive.Efficiency, 
+         Raw.Offensive.Efficiency, OE, eFGPct, FG2Pct, FG3Pct, ORPct, 
+         FTRate, BlockPct, Experience, ARate, StlRate, DFP, 
+         Avg.Possession.Length..Defense., FTPct, EffectiveHeight, 
+         OffFT, Def2PtFG)
+```
+```{r}
+model2 = lm(Seed ~ AdjEM + Net.Rating + AdjOE + Adjusted.Offensive.Efficiency + 
+           Raw.Offensive.Efficiency + OE + eFGPct + FG2Pct + FG3Pct + ORPct +
+           FTRate + BlockPct + Experience + ARate + StlRate +  
+           Avg.Possession.Length..Defense. + FTPct + EffectiveHeight + 
+           OffFT + Def2PtFG, data = filter(df,Post.Season.Tournament == 'March Madness',Season != 2025))
+```
+
+```{r}
+plot(model2)
+```
+
+```{r}
+preds = predict(model2,filter(df,Season == 2025),interval='prediction')
+preds2 = predict(model2,filter(df,Season == 2025),interval='confidence')
+```
+
+```{r}
+min_seed <- 1
+max_seed <- 16
+normalized_preds <- (preds - min(preds)) / (max(preds) - min(preds)) * (max_seed - min_seed) + min_seed
+normalized_preds2 <- (preds2 - min(preds2)) / (max(preds2) - min(preds2)) * (max_seed - min_seed) + min_seed
+```
+
+```{r}
+predsdf = data.frame(Team = df[df$Season == 2025,]$Full.Team.Name, PredictedSeed = normalized_preds)
+predsdf2 = data.frame(Team = df[df$Season == 2025,]$Full.Team.Name, PredictedSeed = normalized_preds2)
+```
+
+```{r}
+head(predsdf,4)
+```
+```{r}
+head(predsdf2,4)
+```
+
